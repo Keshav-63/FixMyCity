@@ -40,7 +40,7 @@ export function ComplaintSheet({ complaint, open, onOpenChange }: ComplaintSheet
     async () => {
       const { data } = await supabase
         .from('comments')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('complaint_id', complaint!.id)
         .order('created_at', { ascending: true })
       return (data || []) as Comment[]
@@ -56,7 +56,7 @@ export function ComplaintSheet({ complaint, open, onOpenChange }: ComplaintSheet
         .select('id')
         .eq('complaint_id', complaint!.id)
         .eq('user_id', user!.id)
-        .single()
+        .maybeSingle()
       return !!data
     }
   )

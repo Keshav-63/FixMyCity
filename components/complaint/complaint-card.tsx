@@ -34,7 +34,7 @@ export function ComplaintCard({ complaint, isPopup = false, onViewDetails }: Com
         .select('id')
         .eq('complaint_id', complaint.id)
         .eq('user_id', user!.id)
-        .single()
+        .maybeSingle()
       return !!data
     }
   )

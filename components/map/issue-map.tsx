@@ -54,17 +54,23 @@ function LocationMarker({
 }
 
 // Component to handle click events for adding new complaints
-function MapClickHandler({ 
+function MapClickHandler({
   onMapClick,
   isSelecting
-}: { 
+}: {
   onMapClick: (lat: number, lng: number) => void
   isSelecting: boolean
 }) {
   useMapEvents({
     click: (e) => {
+      console.log('🗺️ Map clicked at:', e.latlng.lat, e.latlng.lng)
+      console.log('📍 Is selecting location:', isSelecting)
+
       if (isSelecting) {
+        console.log('✅ Location selected:', e.latlng.lat, e.latlng.lng)
         onMapClick(e.latlng.lat, e.latlng.lng)
+      } else {
+        console.log('⚠️ Not in selection mode - click ignored')
       }
     },
   })
@@ -133,14 +139,22 @@ export function IssueMap({
   return (
     <div className="relative h-full w-full">
       {isSelectingLocation && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-          Click on the map to select location
-        </div>
+        <>
+          {/* Banner */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-primary text-primary-foreground px-6 py-3 rounded-lg text-sm font-medium shadow-lg animate-pulse">
+            📍 Click anywhere on the map to select location
+          </div>
+          {/* Map overlay to show it's clickable */}
+          <div className="absolute inset-0 z-[500] cursor-crosshair pointer-events-none" style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            backdropFilter: 'brightness(1.1)'
+          }} />
+        </>
       )}
       <MapContainer
         center={[40.7128, -74.0060]}
         zoom={13}
-        className="h-full w-full z-0"
+        className={`h-full w-full z-0 ${isSelectingLocation ? 'cursor-crosshair' : ''}`}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer

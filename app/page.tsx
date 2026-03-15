@@ -52,9 +52,9 @@ export default function HomePage() {
   const { data: complaints = [], isLoading } = useSWR('complaints', async () => {
     const { data, error } = await supabase
       .from('complaints')
-      .select('*, profiles(display_name)')
+      .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (error) throw error
     return data as Complaint[]
   })
@@ -97,7 +97,9 @@ export default function HomePage() {
   }, [])
 
   const handleMapClick = useCallback((lat: number, lng: number) => {
+    console.log('🎯 handleMapClick called:', { lat, lng, isSelectingLocation })
     if (isSelectingLocation) {
+      console.log('✅ Setting location and opening dialog')
       setSelectedLocation({ lat, lng })
       setIsSelectingLocation(false)
       setNewComplaintOpen(true)
@@ -109,11 +111,18 @@ export default function HomePage() {
   }, [])
 
   const handleNewComplaint = () => {
+    console.log('🆕 Report Issue clicked, userLocation:', userLocation)
     if (userLocation) {
+      console.log('📍 Using user location')
       setSelectedLocation(userLocation)
       setNewComplaintOpen(true)
     } else {
+      console.log('🗺️ Entering map selection mode')
       setIsSelectingLocation(true)
+      // Make sure we're in map view
+      if (viewMode !== 'map') {
+        setViewMode('map')
+      }
     }
   }
 

@@ -39,6 +39,8 @@ interface AIAnalysis {
   suggestedCategory: Category | null
   confidence: number
   reason?: string
+  suggestedTitle?: string
+  suggestedDescription?: string
 }
 
 export function NewComplaintDialog({ 
@@ -102,18 +104,50 @@ export function NewComplaintDialog({
       
       if (response.ok) {
         const analysis = await response.json()
-        setAiAnalysis(analysis)
-        
+        console.log('🤖 AI Analysis Result:', analysis)
+
         if (!analysis.isAppropriate) {
-          setError(analysis.reason || 'This image appears to contain inappropriate content')
+          // Image rejected - clear everything and show error
+          console.log('❌ Image rejected:', analysis.reason)
+          setError(analysis.reason || 'This image is not suitable for civic issue reporting')
           setImageFile(null)
           setImagePreview(null)
-        } else if (analysis.suggestedCategory && !form.category) {
-          setForm(prev => ({ ...prev, category: analysis.suggestedCategory }))
+          setAiAnalysis(null)
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
+        } else {
+          // Image approved - set analysis and auto-fill category, title, and description
+          setAiAnalysis(analysis)
+
+          const updates: any = {}
+
+          // Auto-fill category if not already set
+          if (analysis.suggestedCategory && !form.category) {
+            console.log('✅ Auto-filling category:', analysis.suggestedCategory)
+            updates.category = analysis.suggestedCategory
+          }
+
+          // Auto-fill title if not already set
+          if (analysis.suggestedTitle && !form.title) {
+            console.log('✅ Auto-filling title:', analysis.suggestedTitle)
+            updates.title = analysis.suggestedTitle
+          }
+
+          // Auto-fill description if not already set
+          if (analysis.suggestedDescription && !form.description) {
+            console.log('✅ Auto-filling description:', analysis.suggestedDescription)
+            updates.description = analysis.suggestedDescription
+          }
+
+          if (Object.keys(updates).length > 0) {
+            setForm(prev => ({ ...prev, ...updates }))
+          }
         }
       }
     } catch (err) {
-      console.error('Error analyzing image:', err)
+      console.error('❌ Error analyzing image:', err)
+      setError('Failed to analyze image. Please try again.')
     } finally {
       setIsAnalyzing(false)
     }
@@ -149,15 +183,15 @@ export function NewComplaintDialog({
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop()
         const fileName = `${user.id}/${Date.now()}.${fileExt}`
-        
+
         const { error: uploadError } = await supabase.storage
-          .from('complaint-images')
+          .from('sem6_fixmycity')
           .upload(fileName, imageFile)
 
         if (uploadError) throw uploadError
 
         const { data: { publicUrl } } = supabase.storage
-          .from('complaint-images')
+          .from('sem6_fixmycity')
           .getPublicUrl(fileName)
 
         imageUrl = publicUrl
@@ -243,8 +277,14 @@ export function NewComplaintDialog({
 
         <div className="space-y-4 py-4">
           {error && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {error}
+            <div className="rounded-lg bg-destructive/10 border-2 border-destructive/50 p-4 text-sm text-destructive">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">⚠️</span>
+                <div>
+                  <p className="font-semibold mb-1">Image Rejected</p>
+                  <p>{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -313,6 +353,9 @@ export function NewComplaintDialog({
                 <p className="text-xs text-muted-foreground">
                   PNG, JPG up to 5MB
                 </p>
+                <p className="text-xs text-muted-foreground mt-2 px-4">
+                  📸 Upload photos of: potholes, road damage, water leaks, trash, electrical issues, or other civic problems
+                </p>
               </div>
             )}
             <input
@@ -333,6 +376,11 @@ export function NewComplaintDialog({
               value={form.title}
               onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
             />
+            {aiAnalysis?.suggestedTitle && form.title === aiAnalysis.suggestedTitle && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                ✨ AI-generated (you can edit this)
+              </p>
+            )}
           </div>
 
           {/* Category */}
@@ -371,6 +419,11 @@ export function NewComplaintDialog({
               onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
               className="min-h-[100px]"
             />
+            {aiAnalysis?.suggestedDescription && form.description === aiAnalysis.suggestedDescription && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                ✨ AI-generated (you can edit this)
+              </p>
+            )}
           </div>
         </div>
 
